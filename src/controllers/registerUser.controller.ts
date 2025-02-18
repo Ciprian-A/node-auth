@@ -4,7 +4,7 @@ import {registerUser} from '../services/registerUser.service'
 import {StatusCodes} from 'http-status-codes'
 import {unknownError} from '../middlewares/error/unknownError'
 
-export const createUserHandler = async (
+export const registerUserHandler = async (
 	req: Request,
 	res: Response
 ): Promise<void> => {
