@@ -1,6 +1,8 @@
 import {Request, Response} from 'express'
 import {v4 as uuidv4} from 'uuid'
-import {clientError, registerUser} from '../services/registerUser.service'
+import {registerUser} from '../services/registerUser.service'
+import {StatusCodes} from 'http-status-codes'
+import {unknownError} from '../middlewares/error/unknownError'
 
 export const createUserHandler = async (
 	req: Request,
@@ -9,8 +11,12 @@ export const createUserHandler = async (
 	const {firstname, lastname, email, password} = req.body
 	try {
 		await registerUser(uuidv4(), firstname, lastname, email, password)
-		res.status(201).json({message: 'New user created successfully!'})
+		res
+			.status(StatusCodes.CREATED)
+			.json({message: 'New user created successfully!'})
 	} catch (error) {
-		res.status(500).json({message: clientError(error)})
+		res
+			.status(StatusCodes.INTERNAL_SERVER_ERROR)
+			.json({message: unknownError(error)})
 	}
 }

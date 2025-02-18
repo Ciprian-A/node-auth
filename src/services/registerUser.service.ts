@@ -1,12 +1,8 @@
 import {PrismaClient} from '@prisma/client'
 import bcrypt from 'bcryptjs'
-
-export const clientError = (error: unknown): string => {
-	if (error instanceof Error) {
-		return error.message
-	}
-	return String(error)
-}
+import ClientError from '../middlewares/error/clientError'
+import {StatusCodes} from 'http-status-codes'
+import {unknownError} from '../middlewares/error/unknownError'
 
 const prisma = new PrismaClient()
 export const registerUser = async (
@@ -19,7 +15,10 @@ export const registerUser = async (
 	const saltRounds = 10
 
 	if (!firstname || !lastname || !email || !password) {
-		throw new Error('Missing credentials')
+		throw new ClientError(
+			'Missing credentials',
+			StatusCodes.UNPROCESSABLE_ENTITY
+		)
 	}
 	const existingUser = await prisma.user.findMany({
 		where: {
@@ -27,7 +26,10 @@ export const registerUser = async (
 		}
 	})
 	if (existingUser.length)
-		throw new Error('User with this email address already exists!')
+		throw new ClientError(
+			'User with this email address already exists!',
+			StatusCodes.CONFLICT
+		)
 
 	try {
 		const hashedPassword = await bcrypt.hash(password, saltRounds)
@@ -41,6 +43,9 @@ export const registerUser = async (
 			}
 		})
 	} catch (error) {
-		console.log(`Error when creating new user: ${clientError(error)})`)
+		throw new ClientError(
+			`Error when creating new user: ${unknownError(error)})`,
+			StatusCodes.INTERNAL_SERVER_ERROR
+		)
 	}
 }
