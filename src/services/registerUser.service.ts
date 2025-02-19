@@ -2,7 +2,6 @@ import {PrismaClient} from '@prisma/client'
 import bcrypt from 'bcryptjs'
 import ClientError from '../middlewares/error/clientError'
 import {StatusCodes} from 'http-status-codes'
-import {unknownError} from '../middlewares/error/unknownError'
 
 const prisma = new PrismaClient()
 export const registerUser = async (
@@ -13,26 +12,29 @@ export const registerUser = async (
 	password: string
 ): Promise<void> => {
 	const saltRounds = 10
-
 	if (!firstname || !lastname || !email || !password) {
 		throw new ClientError(
 			'Missing credentials',
 			StatusCodes.UNPROCESSABLE_ENTITY
 		)
 	}
-	const existingUser = await prisma.user.findMany({
+
+	const existingUser = await prisma.user.findUnique({
 		where: {
 			email
 		}
 	})
-	if (existingUser.length)
+
+	if (existingUser) {
 		throw new ClientError(
 			'User with this email address already exists!',
 			StatusCodes.CONFLICT
 		)
+	}
+
+	const hashedPassword = await bcrypt.hash(password, saltRounds)
 
 	try {
-		const hashedPassword = await bcrypt.hash(password, saltRounds)
 		await prisma.user.create({
 			data: {
 				id: userId,
@@ -43,9 +45,9 @@ export const registerUser = async (
 			}
 		})
 	} catch (error) {
-		throw new ClientError(
-			`Error when creating new user: ${unknownError(error)})`,
-			StatusCodes.INTERNAL_SERVER_ERROR
+		console.error('Error occurred when creating new user:', error)
+		throw new Error(
+			`Error occurred when creating new user, statusCode: ${StatusCodes.INTERNAL_SERVER_ERROR}, error: ${error}`
 		)
 	}
 }
